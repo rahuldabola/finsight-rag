@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import secrets
 import tempfile
 import threading
@@ -123,7 +124,14 @@ class SearchRequest(BaseModel):
 @app.get("/api/health")
 def health() -> dict:
     idx = state.index
-    return {"status": "ok", "documents": len(idx.documents), "chunks": len(idx.chunks), "model": get_settings().chat_model}
+    return {
+        "status": "ok",
+        "documents": len(idx.documents),
+        "chunks": len(idx.chunks),
+        "model": get_settings().chat_model,
+        # Railway sets this for git deploys; lets you confirm which commit is live.
+        "commit": os.environ.get("RAILWAY_GIT_COMMIT_SHA", "local")[:7],
+    }
 
 
 @app.get("/api/documents")

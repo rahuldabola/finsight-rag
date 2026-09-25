@@ -75,7 +75,8 @@ def _events(resp):
 
 
 def test_health_and_documents(client):
-    assert client.get("/api/health").json()["chunks"] == 1
+    health = client.get("/api/health").json()
+    assert health["chunks"] == 1 and health["commit"] == "local"
     docs = client.get("/api/documents").json()
     assert docs["companies"] == ["Infosys"]
     pdf = client.get("/api/documents/infosys-q1/pdf")
