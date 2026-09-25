@@ -1,5 +1,7 @@
 # FinSight: RAG copilot for annual reports
 
+[![CI](https://github.com/rahuldabola/finsight-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/rahuldabola/finsight-rag/actions/workflows/ci.yml)
+
 Ask questions across the latest SEC filings of **Infosys, Wipro, Cognizant and Accenture** (Form 20-F / 10-K annual
 reports plus the most recent quarterly earnings releases, 937 pages in total). FinSight answers only from those
 documents, cites every figure down to the page, does arithmetic with a calculator tool instead of guessing, and says
@@ -100,6 +102,7 @@ backend/
   scripts/         build_corpus.py (EDGAR → PDF) · build_index.py
   tests/           26 tests (models and LLM stubbed)
 frontend/          React 19 + Vite + Tailwind v4: chat, sources/PDF panel, library + upload, evaluation
+.github/workflows/ CI: lint, tests, eval-label check, frontend build
 ```
 
 ## Run it locally
@@ -146,12 +149,21 @@ python -m scripts.build_corpus --chrome <path-to-chrome>   # re-download filings
 
 ## Deployment
 
-- **Backend:** the `backend/` Docker image on Railway (1 GB RAM, 2 vCPU). The ONNX models are baked into the image, so
-  cold starts don't download anything. Secrets (`GEMINI_API_KEY`, `FINSIGHT_ADMIN_PASSWORD`, `FINSIGHT_CORS_ORIGINS`)
-  live in Railway variables. Without a volume, uploaded PDFs last until the next redeploy; the seed corpus is part of the image.
-  `scripts/deploy_space.py` deploys the same image to a Hugging Face Space instead.
-- **Frontend:** Vite static build on Vercel (root directory `frontend`), connected to this repo: every push to `main`
-  deploys production automatically. `VITE_API_BASE_URL` points at the backend.
+Every push to `main` goes through three independent pipelines:
+
+| | Where | Trigger | Notes |
+|---|---|---|---|
+| **CI** | GitHub Actions | every push and PR | backend: `ruff`, `pytest`, `eval.check_labels`; frontend: `tsc` + `vite build` |
+| **Backend** | Railway (1 GB RAM, 2 vCPU) | pushes that change `backend/**` | Docker build from `backend/`; health check on `/api/health` means a broken build never replaces the running one |
+| **Frontend** | Vercel | every push | static build from `frontend/`; `VITE_API_BASE_URL` points at the backend |
+
+- **Which version is live?** `GET /api/health` returns `"commit"`: the short git SHA for git-triggered deploys
+  (`local` for a manual `railway up`).
+- **Secrets** (`GEMINI_API_KEY`, `FINSIGHT_ADMIN_PASSWORD`, `FINSIGHT_CORS_ORIGINS`) live in Railway variables, never in the repo.
+- **Models** (ONNX) are baked into the image, so cold starts don't download anything.
+- **Uploads**: there is no volume, so uploaded PDFs last until the next deploy; the seed corpus is part of the image.
+- **Manual deploy** (from the repo root, since the service's root directory is `/backend`): `railway up --service finsight-api`.
+- **Alternative host**: `backend/scripts/deploy_space.py` deploys the same image to a Hugging Face Docker Space.
 
 ## Production notes
 
