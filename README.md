@@ -150,7 +150,8 @@ python -m scripts.build_corpus --chrome <path-to-chrome>   # re-download filings
   cold starts don't download anything. Secrets (`GEMINI_API_KEY`, `FINSIGHT_ADMIN_PASSWORD`, `FINSIGHT_CORS_ORIGINS`)
   live in Railway variables. Without a volume, uploaded PDFs last until the next redeploy; the seed corpus is part of the image.
   `scripts/deploy_space.py` deploys the same image to a Hugging Face Space instead.
-- **Frontend:** Vite static build on Vercel; `VITE_API_BASE_URL` points at the backend.
+- **Frontend:** Vite static build on Vercel (root directory `frontend`), connected to this repo: every push to `main`
+  deploys production automatically. `VITE_API_BASE_URL` points at the backend.
 
 ## Production notes
 
