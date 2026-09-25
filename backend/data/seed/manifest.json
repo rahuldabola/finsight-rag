@@ -1,0 +1,12 @@
+{
+  "documents": [
+    {"id": "infosys-20f-fy2026", "company": "Infosys", "doc_type": "annual", "period": "FY2026", "title": "Infosys Form 20-F, fiscal year ended March 31, 2026", "source": "https://www.sec.gov/Archives/edgar/data/1067491/000119312526270520/infy-20260331.htm"},
+    {"id": "infosys-q1-fy2027-earnings", "company": "Infosys", "doc_type": "earnings", "period": "Q1 FY2027", "title": "Infosys Q1 FY27 earnings press release (quarter ended June 30, 2026)", "source": "https://www.sec.gov/Archives/edgar/data/1067491/000106749126000034/exv99w02.htm"},
+    {"id": "wipro-20f-fy2026", "company": "Wipro", "doc_type": "annual", "period": "FY2026", "title": "Wipro Form 20-F, fiscal year ended March 31, 2026", "source": "https://www.sec.gov/Archives/edgar/data/1123799/000119312526253514/wit-20260331.htm"},
+    {"id": "wipro-q1-fy2027-earnings", "company": "Wipro", "doc_type": "earnings", "period": "Q1 FY2027", "title": "Wipro Q1 FY27 earnings press release (quarter ended June 30, 2026)", "source": "https://www.sec.gov/Archives/edgar/data/1123799/000119312526312481/d29463dex991.htm"},
+    {"id": "cognizant-10k-fy2025", "company": "Cognizant", "doc_type": "annual", "period": "FY2025", "title": "Cognizant Form 10-K, fiscal year ended December 31, 2025", "source": "https://www.sec.gov/Archives/edgar/data/1058290/000105829026000008/ctsh-20251231.htm"},
+    {"id": "cognizant-q2-2026-earnings", "company": "Cognizant", "doc_type": "earnings", "period": "Q2 2026", "title": "Cognizant Q2 2026 earnings press release (quarter ended June 30, 2026)", "source": "https://www.sec.gov/Archives/edgar/data/1058290/000105829026000030/exhibit9916302026.htm"},
+    {"id": "accenture-10k-fy2025", "company": "Accenture", "doc_type": "annual", "period": "FY2025", "title": "Accenture Form 10-K, fiscal year ended August 31, 2025", "source": "https://www.sec.gov/Archives/edgar/data/1467373/000146737325000217/acn-20250831.htm"},
+    {"id": "accenture-q3-fy2026-earnings", "company": "Accenture", "doc_type": "earnings", "period": "Q3 FY2026", "title": "Accenture Q3 FY26 earnings release (quarter ended May 31, 2026)", "source": "https://www.sec.gov/Archives/edgar/data/1467373/000146737326000031/q3fy26earnings8-kexhibit.htm"}
+  ]
+}

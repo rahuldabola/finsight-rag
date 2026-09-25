@@ -1,0 +1,97 @@
+{
+  "generated_at": "2026-09-25",
+  "corpus": {
+    "documents": 8,
+    "chunks": 3168,
+    "pages": 937
+  },
+  "questions": {
+    "answerable": 51,
+    "unanswerable": 12
+  },
+  "retrieval": [
+    {
+      "config": "BM25 only",
+      "description": "keyword search, no query understanding",
+      "recall_at_5": 0.598,
+      "recall_at_8": 0.7255,
+      "mrr": 0.5318,
+      "latency_ms": 16
+    },
+    {
+      "config": "Dense only",
+      "description": "bge-small embeddings, cosine similarity",
+      "recall_at_5": 0.7255,
+      "recall_at_8": 0.8039,
+      "mrr": 0.5899,
+      "latency_ms": 17
+    },
+    {
+      "config": "Hybrid (RRF)",
+      "description": "dense + BM25 fused with Reciprocal Rank Fusion",
+      "recall_at_5": 0.8333,
+      "recall_at_8": 0.8725,
+      "mrr": 0.6498,
+      "latency_ms": 15
+    },
+    {
+      "config": "Hybrid + query filters",
+      "description": "adds company filters with per-company fan-out",
+      "recall_at_5": 0.8333,
+      "recall_at_8": 0.9216,
+      "mrr": 0.6319,
+      "latency_ms": 16
+    },
+    {
+      "config": "Hybrid + filters + rerank",
+      "description": "adds a MiniLM cross-encoder over the top 20 (production)",
+      "recall_at_5": 0.8529,
+      "recall_at_8": 0.9608,
+      "mrr": 0.6826,
+      "latency_ms": 3132
+    }
+  ],
+  "gate": {
+    "answerable_min": 0.6482,
+    "answerable_p05": 0.7173,
+    "unanswerable": {
+      "u01": 0.7275,
+      "u02": 0.6091,
+      "u03": 0.7927,
+      "u04": 0.5958,
+      "u05": 0.4056,
+      "u06": 0.854,
+      "u07": 0.8283,
+      "u08": 0.7718,
+      "u09": 0.4905,
+      "u10": 0.8038,
+      "u11": 0.571,
+      "u12": 0.6338
+    },
+    "threshold": 0.62,
+    "gated_unanswerable": 5,
+    "gated_answerable": 0
+  },
+  "answers": {
+    "evaluated": 63,
+    "errors": 0,
+    "exact_figure_accuracy": 0.9608,
+    "citation_page_accuracy": 0.902,
+    "citation_support_rate": 0.9412,
+    "refusal_rate_unanswerable": 1.0,
+    "false_refusal_rate": 0.0196,
+    "calculator_used": 4,
+    "avg_latency_ms": 4690,
+    "model": "gemini-flash-lite-latest"
+  },
+  "notes": [
+    "Each retrieval stage adds recall: BM25 0.73 -> dense 0.80 -> hybrid RRF 0.87 -> + company filters 0.92 -> + cross-encoder rerank 0.96 (Recall@8).",
+    "Hybrid beats either retriever alone by ~7-11 points of Recall@5: BM25 catches exact tokens (tickers, 'TCV', figures), dense catches paraphrases.",
+    "Company filters matter most for comparison questions: without per-company fan-out the larger 20-F filings crowd out the other company.",
+    "The reranker is the expensive stage (~3 s on a laptop CPU for a pool of 20). Pools of 8 or 12 were faster but lost the Recall@8 gain (0.92 vs 0.96), so the pool stays at 20.",
+    "Relevance gate at cosine 0.62: blocks 5/12 unanswerable questions before any LLM call and 0/51 answerable ones; the grounded prompt refuses the rest.",
+    "Telling the model that guidance/outlook is not an actual result raised refusal on unanswerable questions from 83% to 100% with no extra false refusals.",
+    "Remaining misses: one balance-sheet table whose column headers were lost in PDF extraction, and one comparison where 'TCV of large deal wins' was not matched to 'large deal bookings'.",
+    "Filings repeat key numbers on several pages, so 'cited a labelled gold page' (90%) understates citation quality; 94% of answers cite a page that prints the expected figure."
+  ]
+}

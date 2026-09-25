@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink-950: #080b12;
+  --color-ink-900: #0d1119;
+  --color-ink-850: #111623;
+  --color-ink-800: #161c2b;
+  --color-ink-700: #212a3d;
+  --color-ink-600: #2e3950;
+  --color-ink-400: #7d89a3;
+  --color-ink-300: #a3adc2;
+  --color-ink-100: #e7ebf3;
+  --color-mint-300: #7ee8c4;
+  --color-mint-400: #3fd6a4;
+  --color-mint-500: #1fb888;
+  --color-amber-300: #f7cf7a;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink-950);
+  color: var(--color-ink-100);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #1fb88855;
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-700) transparent;
+}
+
+/* Answer markdown */
+.answer {
+  line-height: 1.7;
+  font-size: 0.94rem;
+  color: var(--color-ink-100);
+}
+.answer p {
+  margin: 0 0 0.75rem;
+}
+.answer p:last-child {
+  margin-bottom: 0;
+}
+.answer ul,
+.answer ol {
+  margin: 0 0 0.75rem;
+  padding-left: 1.25rem;
+}
+.answer ul {
+  list-style: disc;
+}
+.answer ol {
+  list-style: decimal;
+}
+.answer li {
+  margin: 0.2rem 0;
+}
+.answer strong {
+  color: #fff;
+  font-weight: 600;
+}
+.answer h1,
+.answer h2,
+.answer h3 {
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+  font-size: 1rem;
+}
+.answer table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0 0.9rem;
+  font-size: 0.84rem;
+  display: block;
+  overflow-x: auto;
+}
+.answer th,
+.answer td {
+  border: 1px solid var(--color-ink-700);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+.answer th {
+  background: var(--color-ink-800);
+  font-weight: 600;
+}
+.answer code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--color-ink-800);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}
+
+.source-text table {
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+.source-text th,
+.source-text td {
+  border: 1px solid var(--color-ink-700);
+  padding: 0.2rem 0.4rem;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+.caret::after {
+  content: "▍";
+  margin-left: 2px;
+  color: var(--color-mint-400);
+  animation: blink 1s steps(1) infinite;
+}
