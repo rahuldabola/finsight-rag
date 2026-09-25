@@ -16,6 +16,11 @@ from app.config import get_settings
 
 _lock = threading.Lock()
 
+# ONNX Runtime sizes its thread pool from the *host's* core count, which inside a
+# 2-vCPU container on a many-core host means dozens of threads fighting over two
+# CPUs, each with its own scratch buffers. Pin it to what the container really has.
+THREADS = int(os.environ.get("FINSIGHT_ONNX_THREADS", "2"))
+
 # bge models expect this instruction on the query side only.
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 
@@ -24,14 +29,14 @@ QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 def _embedder():
     from fastembed import TextEmbedding
 
-    return TextEmbedding(get_settings().embed_model, cache_dir=os.environ.get("FASTEMBED_CACHE_PATH"))
+    return TextEmbedding(get_settings().embed_model, cache_dir=os.environ.get("FASTEMBED_CACHE_PATH"), threads=THREADS)
 
 
 @lru_cache(maxsize=1)
 def _reranker():
     from fastembed.rerank.cross_encoder import TextCrossEncoder
 
-    return TextCrossEncoder(get_settings().rerank_model, cache_dir=os.environ.get("FASTEMBED_CACHE_PATH"))
+    return TextCrossEncoder(get_settings().rerank_model, cache_dir=os.environ.get("FASTEMBED_CACHE_PATH"), threads=THREADS)
 
 
 def _normalize(m: np.ndarray) -> np.ndarray:
@@ -58,4 +63,4 @@ def rerank(query: str, passages: list[str]) -> list[float]:
     if not passages:
         return []
     with _lock:
-        return [float(s) for s in _reranker().rerank(query, passages, batch_size=16)]
+        return [float(s) for s in _reranker().rerank(query, passages, batch_size=4)]

@@ -5,7 +5,7 @@ reports plus the most recent quarterly earnings releases, 937 pages in total). F
 documents, cites every figure down to the page, does arithmetic with a calculator tool instead of guessing, and says
 *"I couldn't find this"* when the filings don't contain the answer.
 
-**Live demo:** deployment in progress (links will appear here)
+**Live demo:** https://finsight-ai-rag.vercel.app · **API:** https://finsight-api-production-1220.up.railway.app/api/health
 
 ## What makes it more than "chat with a PDF"
 
@@ -136,6 +136,7 @@ python -m scripts.build_corpus --chrome <path-to-chrome>   # re-download filings
 | `GEMINI_API_KEY` | – | Required for answers |
 | `FINSIGHT_CHAT_MODEL` | `gemini-flash-lite-latest` | Generation model |
 | `FINSIGHT_RERANK` | `true` | Cross-encoder reranking |
+| `FINSIGHT_ONNX_THREADS` | 2 | Threads per ONNX model; match the container's vCPUs |
 | `FINSIGHT_MIN_SIMILARITY` | 0.62 | Relevance gate (cosine) |
 | `FINSIGHT_TOP_K` / `FINSIGHT_CANDIDATE_K` | 8 / 30 | Passages sent to the LLM / candidates per retriever |
 | `FINSIGHT_ADMIN_PASSWORD` | – | Enables PDF uploads (header `X-Admin-Password`) |
@@ -145,11 +146,20 @@ python -m scripts.build_corpus --chrome <path-to-chrome>   # re-download filings
 
 ## Deployment
 
-- **Backend:** the `backend/` Docker image on a Hugging Face Space (free CPU tier, 16 GB RAM). The ONNX models are
-  baked into the image, so cold starts don't download anything. Set `GEMINI_API_KEY`, `FINSIGHT_ADMIN_PASSWORD` and
-  `FINSIGHT_CORS_ORIGINS` as Space secrets. Free Spaces have no persistent disk: uploaded PDFs last until the Space
-  restarts, while the seed corpus is part of the image. Any Docker host works (`FINSIGHT_DATA_DIR` → a volume).
+- **Backend:** the `backend/` Docker image on Railway (1 GB RAM, 2 vCPU). The ONNX models are baked into the image, so
+  cold starts don't download anything. Secrets (`GEMINI_API_KEY`, `FINSIGHT_ADMIN_PASSWORD`, `FINSIGHT_CORS_ORIGINS`)
+  live in Railway variables. Without a volume, uploaded PDFs last until the next redeploy; the seed corpus is part of the image.
+  `scripts/deploy_space.py` deploys the same image to a Hugging Face Space instead.
 - **Frontend:** Vite static build on Vercel; `VITE_API_BASE_URL` points at the backend.
+
+## Production notes
+
+- **Pin ONNX Runtime threads to the container's CPUs** (`FINSIGHT_ONNX_THREADS`, default 2). ONNX Runtime sizes its pool
+  from the host's core count; on a 2-vCPU container on a many-core host that meant dozens of threads contending, which
+  made reranking take 12-16 s and pushed memory to 0.9 of 1 GB (the container was OOM-killed). Pinned: about 1 s and 0.43 GB.
+- Retrieval skips the reranker when the relevance gate is going to refuse anyway.
+- Answers take 2-3 s end to end. On the Gemini free tier, bursts of questions hit per-minute limits; the client honours
+  the `retryDelay` in the 429 before streaming starts, so a burst costs latency rather than errors.
 
 ## Limitations
 

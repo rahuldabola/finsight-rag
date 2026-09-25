@@ -37,6 +37,13 @@ export default function App() {
 
   useEffect(load, [load])
 
+  // Keep the tab in sync with #library / #eval links and back/forward navigation.
+  useEffect(() => {
+    const onHash = () => setTab(initialTab())
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+
   const go = (t: Tab) => {
     setTab(t)
     history.replaceState(null, '', t === 'ask' ? ' ' : `#${t}`)

@@ -113,6 +113,7 @@ def answer_events(index: Index, question: str, *, rerank: bool | None = None) ->
         top_k=settings.top_k,
         candidate_k=settings.candidate_k,
         rerank=settings.rerank if rerank is None else rerank,
+        min_similarity=settings.min_similarity,
     )
     yield {
         "type": "analysis",

@@ -94,6 +94,7 @@ def retrieve(
     use_filters: bool = True,
     rerank: bool = True,
     rerank_pool: int = 20,
+    min_similarity: float | None = None,
 ) -> RetrievalResult:
     info = analyze(query, index.companies())
     if not index.chunks:
@@ -111,6 +112,12 @@ def retrieve(
             groups = [np.arange(len(index.chunks))]
         doc_type = info.doc_type if use_filters else None
         group_cands = [_candidates(index, rows, dense, bm25, mode, candidate_k, doc_type) for rows in groups]
+
+    # If even the best dense match is below the relevance gate, the answer step
+    # will refuse without calling the LLM; don't spend seconds reranking for it.
+    best_candidate = max((h.dense for cands in group_cands for h in cands), default=0.0)
+    if min_similarity is not None and best_candidate < min_similarity:
+        rerank = False
 
     per_group = max(top_k // len(groups), 3)
     selected: list[Hit] = []

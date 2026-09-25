@@ -16,7 +16,7 @@
       "recall_at_5": 0.598,
       "recall_at_8": 0.7255,
       "mrr": 0.5318,
-      "latency_ms": 16
+      "latency_ms": 35
     },
     {
       "config": "Dense only",
@@ -24,7 +24,7 @@
       "recall_at_5": 0.7255,
       "recall_at_8": 0.8039,
       "mrr": 0.5899,
-      "latency_ms": 17
+      "latency_ms": 34
     },
     {
       "config": "Hybrid (RRF)",
@@ -32,7 +32,7 @@
       "recall_at_5": 0.8333,
       "recall_at_8": 0.8725,
       "mrr": 0.6498,
-      "latency_ms": 15
+      "latency_ms": 35
     },
     {
       "config": "Hybrid + query filters",
@@ -40,7 +40,7 @@
       "recall_at_5": 0.8333,
       "recall_at_8": 0.9216,
       "mrr": 0.6319,
-      "latency_ms": 16
+      "latency_ms": 36
     },
     {
       "config": "Hybrid + filters + rerank",
@@ -48,7 +48,7 @@
       "recall_at_5": 0.8529,
       "recall_at_8": 0.9608,
       "mrr": 0.6826,
-      "latency_ms": 3132
+      "latency_ms": 4194
     }
   ],
   "gate": {

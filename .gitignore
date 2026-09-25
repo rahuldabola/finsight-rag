@@ -8,3 +8,6 @@ backend/data/live/
 node_modules/
 frontend/dist/
 .vercel
+
+.vercel
+.env*
