@@ -60,7 +60,12 @@ async def lifespan(_: FastAPI):
     live = ensure_live_index(settings.seed_dir, settings.data_dir)
     state.index = Index.load(live)
     state.index.extra_pdf_dirs = [settings.seed_dir / "pdfs"]
-    log.info("index loaded: %d documents, %d chunks", len(state.index.documents), len(state.index.chunks))
+    log.info(
+        "index loaded: %d documents, %d chunks (commit %s)",
+        len(state.index.documents),
+        len(state.index.chunks),
+        os.environ.get("RAILWAY_GIT_COMMIT_SHA", "local")[:7],
+    )
     threading.Thread(target=_warm_models, daemon=True).start()
     yield
 
