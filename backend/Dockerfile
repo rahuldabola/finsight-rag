@@ -5,7 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     FASTEMBED_CACHE_PATH=/app/models \
     FINSIGHT_SEED_DIR=/app/data/seed \
     FINSIGHT_DATA_DIR=/tmp/finsight \
-    PORT=7860
+    PORT=7860 \n    FINSIGHT_ONNX_THREADS=2
 
 WORKDIR /app
 COPY requirements.txt .
