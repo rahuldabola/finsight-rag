@@ -1,12 +1,14 @@
-import { AlertTriangle, ArrowUp, Calculator, Filter, Loader2, Sparkles, Square } from 'lucide-react'
+import { AlertTriangle, ArrowUp, Calculator, CornerDownRight, Filter, Loader2, Plus, Sparkles, Square } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { ask, type Analysis, type Source, type ToolCall } from '../api'
+import { ask, type Analysis, type HistoryTurn, type Source, type ToolCall } from '../api'
 import { Answer } from './Answer'
 import { SourcePanel } from './SourcePanel'
 
 interface Turn {
   id: number
   question: string
+  /** Standalone form of a follow-up, as rewritten by the backend. */
+  rewritten?: string
   answer: string
   analysis?: Analysis
   sources: Source[]
@@ -26,6 +28,9 @@ const EXAMPLES = [
   'By what percentage did Cognizant revenue grow in Q2 2026 versus Q2 2025?',
   'What risks does Infosys highlight about generative AI?',
 ]
+
+// Earlier turns sent with each question so follow-ups ("and Wipro?") resolve.
+const HISTORY_TURNS = 3
 
 export function AskView() {
   const [turns, setTurns] = useState<Turn[]>([])
@@ -50,6 +55,10 @@ export function AskView() {
     const question = q.trim()
     if (question.length < 3 || busy) return
     const id = Date.now()
+    const history: HistoryTurn[] = turns
+      .filter((t) => t.status === 'done' && t.answer)
+      .slice(-HISTORY_TURNS)
+      .map((t) => ({ question: t.rewritten ?? t.question, answer: t.answer.slice(0, 2000) }))
     setTurns((ts) => [
       ...ts,
       { id, question, answer: '', sources: [], tools: [], cited: [], status: 'retrieving' },
@@ -63,8 +72,12 @@ export function AskView() {
     try {
       await ask(
         question,
+        history,
         (e) => {
           switch (e.type) {
+            case 'rewrite':
+              update(id, (t) => ({ ...t, rewritten: e.question }))
+              break
             case 'analysis': {
               const { type: _t, ...analysis } = e
               void _t
@@ -97,6 +110,15 @@ export function AskView() {
     }
   }
 
+  const newChat = () => {
+    abortRef.current?.abort()
+    setTurns([])
+    setActiveTurn(null)
+    setActiveSource(null)
+    setViewer(null)
+    setMobilePanel(false)
+  }
+
   const selectCitation = (turnId: number, n: number) => {
     setActiveTurn(turnId)
     setActiveSource(n)
@@ -120,6 +142,14 @@ export function AskView() {
                 } p-1`}
               >
                 <h2 className="mb-3 text-[1.05rem] font-semibold leading-snug text-white">{t.question}</h2>
+                {t.rewritten && (
+                  <div className="-mt-1.5 mb-3 flex items-start gap-1.5 text-xs text-ink-400">
+                    <CornerDownRight size={12} className="mt-0.5 shrink-0" />
+                    <span>
+                      Searched as <span className="text-ink-100">{t.rewritten}</span>
+                    </span>
+                  </div>
+                )}
                 {t.analysis && (
                   <div className="mb-3 flex flex-wrap items-center gap-1.5 text-xs text-ink-400">
                     <Filter size={12} />
@@ -211,7 +241,7 @@ export function AskView() {
               }}
               rows={1}
               maxLength={600}
-              placeholder="Ask about revenue, margins, risks, headcount… across Infosys, Wipro, Cognizant, Accenture"
+              placeholder={turns.length ? 'Ask a follow-up, e.g. "and Wipro?"' : 'Ask about revenue, margins, risks, headcount… across Infosys, Wipro, Cognizant, Accenture'}
               className="max-h-40 min-h-[2.5rem] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-ink-100 outline-none placeholder:text-ink-400"
             />
             {busy ? (
@@ -234,9 +264,16 @@ export function AskView() {
               </button>
             )}
           </form>
-          <p className="mx-auto mt-1.5 max-w-3xl text-center text-[0.7rem] text-ink-400">
-            Answers only use the indexed SEC filings and cite the page. Check important figures against the source.
-          </p>
+          <div className="mx-auto mt-1.5 flex max-w-3xl items-center justify-center gap-3 text-[0.7rem] text-ink-400">
+            {turns.length > 0 && (
+              <button onClick={newChat} className="flex shrink-0 items-center gap-1 hover:text-mint-300" title="Start a new conversation">
+                <Plus size={11} /> New chat
+              </button>
+            )}
+            <p className="text-center">
+              Follow-ups keep context. Answers only use the indexed SEC filings and cite the page.
+            </p>
+          </div>
         </div>
       </section>
 

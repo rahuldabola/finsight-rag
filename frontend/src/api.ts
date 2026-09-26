@@ -48,7 +48,13 @@ export interface ToolCall {
   error?: string
 }
 
+export interface HistoryTurn {
+  question: string
+  answer: string
+}
+
 export type AskEvent =
+  | { type: 'rewrite'; original: string; question: string }
   | ({ type: 'analysis' } & Analysis)
   | { type: 'sources'; sources: Source[] }
   | { type: 'token'; text: string }
@@ -80,12 +86,17 @@ export async function fetchEval(): Promise<EvalResults> {
   return res.json()
 }
 
-/** POST a question and parse the Server-Sent Events stream as it arrives. */
-export async function ask(question: string, onEvent: (e: AskEvent) => void, signal?: AbortSignal): Promise<void> {
+/** POST a question (plus earlier turns, for follow-ups) and parse the Server-Sent Events stream as it arrives. */
+export async function ask(
+  question: string,
+  history: HistoryTurn[],
+  onEvent: (e: AskEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
   const res = await fetch(`${API_BASE}/api/ask`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, history }),
     signal,
   })
   if (!res.ok || !res.body) throw new Error(await errorMessage(res))
@@ -147,6 +158,14 @@ export interface EvalResults {
     refusal_rate_unanswerable: number
     false_refusal_rate: number
     avg_latency_ms: number
+    model: string
+  }
+  followups?: {
+    evaluated: number
+    recall_at_8_raw: number
+    recall_at_8_rewritten: number
+    companies_detected_raw: number
+    companies_detected_rewritten: number
     model: string
   }
   notes: string[]

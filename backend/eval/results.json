@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-25",
+  "generated_at": "2026-09-26",
   "corpus": {
     "documents": 8,
     "chunks": 3168,
@@ -16,7 +16,7 @@
       "recall_at_5": 0.598,
       "recall_at_8": 0.7255,
       "mrr": 0.5318,
-      "latency_ms": 35
+      "latency_ms": 32
     },
     {
       "config": "Dense only",
@@ -24,7 +24,7 @@
       "recall_at_5": 0.7255,
       "recall_at_8": 0.8039,
       "mrr": 0.5899,
-      "latency_ms": 34
+      "latency_ms": 33
     },
     {
       "config": "Hybrid (RRF)",
@@ -32,7 +32,7 @@
       "recall_at_5": 0.8333,
       "recall_at_8": 0.8725,
       "mrr": 0.6498,
-      "latency_ms": 35
+      "latency_ms": 33
     },
     {
       "config": "Hybrid + query filters",
@@ -40,7 +40,7 @@
       "recall_at_5": 0.8333,
       "recall_at_8": 0.9216,
       "mrr": 0.6319,
-      "latency_ms": 36
+      "latency_ms": 33
     },
     {
       "config": "Hybrid + filters + rerank",
@@ -48,7 +48,7 @@
       "recall_at_5": 0.8529,
       "recall_at_8": 0.9608,
       "mrr": 0.6826,
-      "latency_ms": 4194
+      "latency_ms": 3879
     }
   ],
   "gate": {
@@ -84,6 +84,14 @@
     "avg_latency_ms": 4690,
     "model": "gemini-flash-lite-latest"
   },
+  "followups": {
+    "evaluated": 12,
+    "recall_at_8_raw": 0.25,
+    "recall_at_8_rewritten": 0.9583,
+    "companies_detected_raw": 0.1667,
+    "companies_detected_rewritten": 1.0,
+    "model": "gemini-flash-lite-latest"
+  },
   "notes": [
     "Each retrieval stage adds recall: BM25 0.73 -> dense 0.80 -> hybrid RRF 0.87 -> + company filters 0.92 -> + cross-encoder rerank 0.96 (Recall@8).",
     "Hybrid beats either retriever alone by ~7-11 points of Recall@5: BM25 catches exact tokens (tickers, 'TCV', figures), dense catches paraphrases.",
@@ -92,6 +100,7 @@
     "Relevance gate at cosine 0.62: blocks 5/12 unanswerable questions before any LLM call and 0/51 answerable ones; the grounded prompt refuses the rest.",
     "Telling the model that guidance/outlook is not an actual result raised refusal on unanswerable questions from 83% to 100% with no extra false refusals.",
     "Remaining misses: one balance-sheet table whose column headers were lost in PDF extraction, and one comparison where 'TCV of large deal wins' was not matched to 'large deal bookings'.",
-    "Filings repeat key numbers on several pages, so 'cited a labelled gold page' (90%) understates citation quality; 94% of answers cite a page that prints the expected figure."
+    "Filings repeat key numbers on several pages, so 'cited a labelled gold page' (90%) understates citation quality; 94% of answers cite a page that prints the expected figure.",
+    "Follow-ups ('And Cognizant at the end of 2025?') searched as typed find the gold page 25% of the time; rewritten with the conversation first, 96%. The remaining miss asked for Wipro's headcount 'for the same period' (June 2026) while the label is the annual figure."
   ]
 }

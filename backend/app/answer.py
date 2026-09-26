@@ -2,6 +2,7 @@
 
 `answer_events` yields plain dicts that the API turns into Server-Sent Events:
 
+    {"type": "rewrite", ...}    a follow-up rewritten as a standalone question
     {"type": "analysis", ...}   detected companies / document type
     {"type": "sources", ...}    the numbered passages the model is allowed to use
     {"type": "token", "text"}   answer text, streamed
@@ -67,6 +68,48 @@ CALC_TOOL = types.Tool(
 )
 
 
+CONDENSE_PROMPT = """You rewrite follow-up questions from a conversation about company filings into standalone
+questions for a search engine. Resolve pronouns and ellipsis from the conversation: name the companies, metrics and
+periods explicitly (e.g. "and Wipro?" after a question about Infosys revenue in Q1 FY27 becomes "What was Wipro's
+revenue in Q1 FY27?"). A follow-up that compares ("compare that with Wipro", "how does Wipro stack up?") must name
+both sides: the earlier company and the new one. If the question already stands on its own, return it unchanged.
+Do not answer it.
+Output only the rewritten question, on one line."""
+
+MAX_HISTORY_TURNS = 3
+_CITATION = re.compile(r"\[\d{1,2}\]")
+
+
+def condense_question(question: str, history: list[dict]) -> str:
+    """Turn a follow-up ("and Wipro?") into a standalone question so retrieval,
+    company filters and the grounding prompt all see the full intent. Retrieval
+    stays single-turn; only the question carries the conversation. Falls back to
+    the raw question if the model is unavailable."""
+    if not history:
+        return question
+    convo = "\n".join(
+        f"User: {h['question']}\nAssistant: {_CITATION.sub('', h['answer'])[:600]}" for h in history[-MAX_HISTORY_TURNS:]
+    )
+    prompt = f"Conversation:\n{convo}\n\nFollow-up question: {question}"
+    contents = [types.Content(role="user", parts=[types.Part(text=prompt)])]
+    config = types.GenerateContentConfig(system_instruction=CONDENSE_PROMPT, temperature=0.0)
+    try:
+        text = "".join(
+            part.text
+            for chunk in llm.stream_generate(contents, config)
+            for cand in (chunk.candidates or [])[:1]
+            if cand.content is not None
+            for part in cand.content.parts or []
+            if part.text and not part.thought
+        )
+    except (errors.APIError, llm.LLMUnavailable):
+        log.warning("question rewrite failed; using the raw follow-up", exc_info=True)
+        return question
+    lines = text.strip().splitlines()
+    text = lines[0].strip().strip('"') if lines else ""
+    return text if 3 <= len(text) <= 600 else question
+
+
 def _source_payload(n: int, hit: Hit, index: Index) -> dict:
     doc = index.get_document(hit.chunk.doc_id) or {}
     return {
@@ -104,9 +147,16 @@ def cited_numbers(answer: str, max_n: int) -> list[int]:
     return sorted(n for n in found if 1 <= n <= max_n)
 
 
-def answer_events(index: Index, question: str, *, rerank: bool | None = None) -> Iterator[dict]:
+def answer_events(
+    index: Index, question: str, *, history: list[dict] | None = None, rerank: bool | None = None
+) -> Iterator[dict]:
     settings = get_settings()
     started = time.time()
+    if history:
+        standalone = condense_question(question, history)
+        if standalone != question:
+            yield {"type": "rewrite", "original": question, "question": standalone}
+        question = standalone
     result = retrieve(
         index,
         question,

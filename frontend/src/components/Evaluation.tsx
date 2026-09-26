@@ -103,6 +103,33 @@ export function Evaluation() {
           </>
         )}
 
+        {data.followups && (
+          <>
+            <h2 className="mt-10 mb-3 text-sm font-semibold tracking-wide text-ink-300 uppercase">Follow-up questions</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                ['Recall@8', data.followups.recall_at_8_raw, data.followups.recall_at_8_rewritten],
+                ['Right companies detected', data.followups.companies_detected_raw, data.followups.companies_detected_rewritten],
+              ].map(([label, raw, rewritten]) => (
+                <div key={label as string} className="rounded-xl border border-ink-700 bg-ink-900 p-4">
+                  <div className="text-xs text-ink-400">{label}</div>
+                  <div className="mt-1 flex items-baseline gap-2 font-mono">
+                    <span className="text-lg text-ink-400">{pct(raw as number)}</span>
+                    <span className="text-ink-400">→</span>
+                    <span className="text-2xl text-mint-300">{pct(rewritten as number)}</span>
+                  </div>
+                  <div className="mt-1 text-xs text-ink-400">searched as typed → rewritten with the conversation</div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-ink-400">
+              {data.followups.evaluated} ambiguous follow-ups such as "And Cognizant at the end of 2025?" or "What was the
+              operating margin?", each after an earlier question. The API rewrites them into standalone questions with{' '}
+              {data.followups.model} before retrieval.
+            </p>
+          </>
+        )}
+
         {data.notes.length > 0 && (
           <>
             <h2 className="mt-10 mb-3 text-sm font-semibold tracking-wide text-ink-300 uppercase">Findings</h2>

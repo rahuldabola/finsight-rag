@@ -2,6 +2,7 @@
 
     python -m eval.run_eval                  # retrieval only (offline, no API calls)
     python -m eval.run_eval --answers        # also generate answers with Gemini
+    python -m eval.run_eval --followups      # also score follow-up rewriting (uses Gemini)
 
 Writes eval/results.json (served at /api/eval and shown in the UI) and, with
 --answers, eval/answers.jsonl with every generated answer for inspection.
@@ -26,7 +27,7 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 from app.config import BACKEND_DIR, get_settings  # noqa: E402
 from app.retrieval.hybrid import retrieve  # noqa: E402
 from app.store import Index  # noqa: E402
-from eval.questions import load  # noqa: E402
+from eval.questions import load, load_followups  # noqa: E402
 
 OUT = Path(__file__).resolve().parent
 
@@ -174,9 +175,41 @@ def answer_eval(index: Index, answerable: list[dict], unanswerable: list[dict], 
     }
 
 
+def followup_eval(index: Index, pause: float) -> dict:
+    """Retrieval for ambiguous follow-ups ("And Cognizant?"), searched as typed vs
+    after rewriting with the conversation (what /api/ask does)."""
+    from app.answer import condense_question
+    from app.retrieval.query import analyze
+
+    rows = []
+    for f in load_followups():
+        rewritten = condense_question(f["question"], f["history"])
+        row = {"id": f["id"], "question": f["question"], "rewritten": rewritten}
+        for label, text in (("raw", f["question"]), ("rewritten", rewritten)):
+            res = retrieve(index, text, top_k=8, candidate_k=30)
+            ranks = gold_hits(res.hits, f["gold"])
+            row[f"{label}_recall"] = sum(1 for r in ranks if r) / len(ranks)
+            row[f"{label}_companies_ok"] = sorted(analyze(text, index.companies()).companies) == sorted(f["companies"])
+        rows.append(row)
+        print(f"{f['id']}  {f['question']!r} -> {rewritten!r}  recall {row['raw_recall']:.2f} -> {row['rewritten_recall']:.2f}")
+        time.sleep(pause)
+    lines = [json.dumps(r, ensure_ascii=False) for r in rows]
+    (OUT / "followups.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    n = len(rows)
+    return {
+        "evaluated": n,
+        "recall_at_8_raw": round(sum(r["raw_recall"] for r in rows) / n, 4),
+        "recall_at_8_rewritten": round(sum(r["rewritten_recall"] for r in rows) / n, 4),
+        "companies_detected_raw": round(sum(r["raw_companies_ok"] for r in rows) / n, 4),
+        "companies_detected_rewritten": round(sum(r["rewritten_companies_ok"] for r in rows) / n, 4),
+        "model": get_settings().chat_model,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--answers", action="store_true", help="also run end-to-end answers (uses the Gemini API)")
+    parser.add_argument("--followups", action="store_true", help="also score follow-up rewriting (uses the Gemini API)")
     parser.add_argument("--pause", type=float, default=4.0, help="seconds between LLM questions (free-tier RPM)")
     args = parser.parse_args()
 
@@ -196,10 +229,11 @@ def main() -> None:
         "retrieval": retrieval,
         "gate": gate,
         "answers": answer_eval(index, answerable, unanswerable, args.pause) if args.answers else previous.get("answers"),
+        "followups": followup_eval(index, args.pause) if args.followups else previous.get("followups"),
         "notes": previous.get("notes", []),
     }
     (OUT / "results.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
-    print(json.dumps(results.get("answers"), indent=2))
+    print(json.dumps({"answers": results.get("answers"), "followups": results.get("followups")}, indent=2))
 
 
 if __name__ == "__main__":

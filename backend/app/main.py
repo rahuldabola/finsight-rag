@@ -114,8 +114,15 @@ def _require_admin(password: str | None) -> None:
 
 
 # ---- routes ---------------------------------------------------------------
+class HistoryTurn(BaseModel):
+    question: str = Field(max_length=600)
+    answer: str = Field(max_length=6000)
+
+
 class AskRequest(BaseModel):
     question: str = Field(min_length=3, max_length=600)
+    # Earlier turns of the conversation, oldest first; used only to resolve follow-ups.
+    history: list[HistoryTurn] = Field(default_factory=list, max_length=10)
 
 
 class SearchRequest(BaseModel):
@@ -156,10 +163,11 @@ def document_pdf(doc_id: str):
 def ask(body: AskRequest, request: Request):
     _check_rate(request)
     question = body.question.strip()
+    history = [h.model_dump() for h in body.history if h.answer.strip()]
 
     def sse():
         try:
-            for event in answer_events(state.index, question):
+            for event in answer_events(state.index, question, history=history):
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
         except Exception:  # noqa: BLE001 - surface as an event, not a dropped stream
             log.exception("ask failed")

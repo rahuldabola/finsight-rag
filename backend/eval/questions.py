@@ -103,3 +103,40 @@ def load():
     ]
     unanswerable = [{"id": f"u{i:02d}", "question": q} for i, q in enumerate(UNANSWERABLE, 1)]
     return answerable, unanswerable
+
+
+# Follow-ups: (earlier question, its answer, follow-up, gold for the follow-up, companies it is about).
+# The follow-up alone is ambiguous; retrieval must use the conversation to find the gold page.
+FOLLOWUPS = [
+    ("What were Infosys revenues in Q1 FY27?", "Infosys revenues in Q1 FY27 were $5,082 million.",
+     "What was the operating margin?", {INFY_Q: [1]}, ["Infosys"]),
+    ("What was Wipro's voluntary attrition in Q1 FY27?", "Wipro's voluntary attrition in Q1 FY27 was 13.9%.",
+     "And its large deal bookings that quarter?", {WIT_Q: [1]}, ["Wipro"]),
+    ("How many employees did Infosys have as of March 31, 2026?", "Infosys had 328,594 employees as of March 31, 2026.",
+     "How many of them were based in India?", {INFY_A: [111]}, ["Infosys"]),
+    ("How many employees did Infosys have as of March 31, 2026?", "Infosys had 328,594 employees as of March 31, 2026.",
+     "And Cognizant at the end of 2025?", {CTSH_A: [18]}, ["Cognizant"]),
+    ("What was Cognizant's revenue in Q2 2026?", "Cognizant's Q2 2026 revenue was $5,481 million.",
+     "Which company did they acquire that quarter, and for how much?", {CTSH_Q: [2]}, ["Cognizant"]),
+    ("Which firm is Infosys's independent registered public accounting firm?", "Deloitte Haskins & Sells LLP.",
+     "Same question for Cognizant.", {CTSH_A: [72, 86]}, ["Cognizant"]),
+    ("What share of Infosys revenue came from financial services clients in fiscal 2026?", "27.9% in fiscal 2026.",
+     "What about North America's share of revenues?", {INFY_A: [38]}, ["Infosys"]),
+    ("What was Wipro's IT services segment revenue in the quarter ended June 30, 2026?", "$2,614.5 million.",
+     "What outlook did they give for the next quarter?", {WIT_Q: [1]}, ["Wipro"]),
+    ("What were Wipro's large deal bookings in the June 2026 quarter?", "$1,626 million.",
+     "How about for the full fiscal year 2026?", {WIT_A: [93]}, ["Wipro"]),
+    ("What were Accenture's revenues for fiscal 2025?", "Accenture's fiscal 2025 revenues were $69.7 billion.",
+     "And new bookings?", {ACN_A: [34]}, ["Accenture"]),
+    ("What were Accenture's new bookings in Q3 FY26?", "Accenture's Q3 FY26 new bookings were $19.3 billion.",
+     "What was diluted EPS in that quarter?", {ACN_Q: [1]}, ["Accenture"]),
+    ("What was Cognizant's total headcount as of June 30, 2026?", "356,700 as of June 30, 2026.",
+     "Compare that with Wipro's headcount.", {CTSH_Q: [2], WIT_A: [143]}, ["Cognizant", "Wipro"]),
+]
+
+
+def load_followups():
+    return [
+        {"id": f"f{i:02d}", "history": [{"question": q, "answer": a}], "question": f, "gold": gold, "companies": cos}
+        for i, (q, a, f, gold, cos) in enumerate(FOLLOWUPS, 1)
+    ]

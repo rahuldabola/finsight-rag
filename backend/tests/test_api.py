@@ -126,3 +126,42 @@ def test_upload_requires_password_and_pdf(client):
         "/api/documents", files={"file": ("x.txt", b"hello", "text/plain")}, data=data, headers={"X-Admin-Password": "pw"}
     )
     assert bad.status_code == 415
+
+
+def test_follow_up_is_rewritten_before_retrieval(client, monkeypatch):
+    seen = []
+    rounds = iter(
+        [
+            [FakeChunk([FakePart(text="What was Infosys revenue in Q1 FY2027?\n")])],
+            [FakeChunk([FakePart(text="Revenue was $5,082 million [1].")])],
+        ]
+    )
+
+    def fake(contents, config):
+        seen.append(contents[0].parts[0].text)
+        return next(rounds)
+
+    monkeypatch.setattr(answer_mod.llm, "stream_generate", fake)
+    history = [{"question": "How did Infosys do in Q1?", "answer": "Infosys grew revenue [1]."}]
+    events = _events(client.post("/api/ask", json={"question": "and revenue?", "history": history}))
+    rewrite = events[0]
+    assert rewrite == {"type": "rewrite", "original": "and revenue?", "question": "What was Infosys revenue in Q1 FY2027?"}
+    assert "[1]" not in seen[0] and "Follow-up question: and revenue?" in seen[0]
+    assert "Question: What was Infosys revenue in Q1 FY2027?" in seen[1]
+    assert events[1]["companies"] == ["Infosys"]
+    assert events[-1]["answered"] is True
+
+
+def test_follow_up_rewrite_falls_back_to_raw_question(client, monkeypatch):
+    calls = iter([answer_mod.llm.LLMUnavailable("down"), [FakeChunk([FakePart(text="ok [1]")])]])
+
+    def fake(contents, config):
+        nxt = next(calls)
+        if isinstance(nxt, Exception):
+            raise nxt
+        return iter(nxt)
+
+    monkeypatch.setattr(answer_mod.llm, "stream_generate", fake)
+    history = [{"question": "Infosys Q1 revenue?", "answer": "$5,082 million [1]."}]
+    events = _events(client.post("/api/ask", json={"question": "Infosys revenue growth?", "history": history}))
+    assert all(e["type"] != "rewrite" for e in events) and events[-1]["type"] == "done"
