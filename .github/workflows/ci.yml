@@ -93,3 +93,20 @@ jobs:
             frontend/playwright-report
             frontend/test-results
           retention-days: 7
+
+  docker:
+    # Builds the production image via docker-compose, waits for its healthcheck and queries the running container.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose up --build --detach --wait --wait-timeout 180
+      - name: API answers from inside the container
+        run: |
+          curl --fail --silent --show-error http://localhost:8000/api/health | tee health.json
+          jq -e '.status == "ok" and .documents == 8 and .chunks > 3000' health.json
+          curl --fail --silent --show-error -X POST http://localhost:8000/api/search             -H 'Content-Type: application/json'             -d '{"question": "What were Infosys revenues in Q1 FY27?", "rerank": false}'             | jq -e '.companies == ["Infosys"] and any(.hits[]; .text | contains("5,082"))'
+      - if: failure()
+        run: docker compose logs --no-color api
+      - if: always()
+        run: docker compose down --volumes
+

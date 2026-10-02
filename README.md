@@ -126,8 +126,8 @@ backend/
   eval/            questions.py (labels + follow-ups) · check_labels.py · run_eval.py · results.json
   scripts/         build_corpus.py (EDGAR → PDF) · build_index.py
   eval/regression.py   CI gate: Recall@8 must not fall below the published baseline
-  tests/           54 tests, 94% coverage (models and LLM stubbed)
-frontend/          React 19 + Vite + Tailwind v4: chat, sources/PDF panel, library + upload, evaluation (17 Vitest tests, 10 Playwright browser tests in `e2e/`, desktop and mobile)
+  tests/           62 tests, 93% coverage (models and LLM stubbed)
+frontend/          React 19 + Vite + Tailwind v4: chat, sources/PDF panel, library + upload, evaluation (25 Vitest tests, 10 Playwright browser tests in `e2e/`, desktop and mobile)
 docs/              screenshots
 .github/workflows/ CI: lint, tests, eval-label check, frontend build
 ```
@@ -150,8 +150,10 @@ npm run dev                                     # http://localhost:5173 (talks t
 
 The prebuilt index ships in `backend/data/seed/index`, so nothing has to be embedded before the first question.
 
+Or run the API in Docker (same image as production): `GEMINI_API_KEY=your-key docker compose up --build`, then use the frontend as above.
+
 ```bash
-pytest                                  # 54 tests + 85% coverage floor (no network, no model downloads)
+pytest                                  # 62 tests + 85% coverage floor (no network, no model downloads)
 mypy app                                # type check
 python -m eval.regression               # CI gate: real embeddings, Recall@8 above the published floor
 (cd ../frontend && npm test && npm run test:e2e)   # unit tests + browser tests (first time: npx playwright install chromium)
@@ -200,7 +202,7 @@ Every push to `main` goes through three independent pipelines:
 
 | | Where | Trigger | Notes |
 |---|---|---|---|
-| **CI** | GitHub Actions | every push and PR | backend: `ruff`, `mypy`, `pytest` (coverage floor 85%), `eval.check_labels`; retrieval regression: real embeddings on the seed index, Recall@8 must stay at or above 0.85 (hybrid) / 0.90 (+ filters); frontend: `eslint`, `vitest`, `tsc` + `vite build`; e2e: Playwright (Chromium, desktop + mobile viewport) against the production build with the API mocked |
+| **CI** | GitHub Actions | every push and PR | backend: `ruff`, `mypy`, `pytest` (coverage floor 85%), `eval.check_labels`; retrieval regression: real embeddings on the seed index, Recall@8 must stay at or above 0.85 (hybrid) / 0.90 (+ filters); frontend: `eslint`, `vitest`, `tsc` + `vite build`; e2e: Playwright (Chromium, desktop + mobile viewport) against the production build with the API mocked; docker: builds the production image with `docker compose`, waits for its healthcheck and queries it; API contract: backend and frontend tests share `contracts/ask-events.json` |
 | **Backend** | Railway (1 GB RAM, 2 vCPU) | pushes that change `backend/**` | Docker build from `backend/`; health check on `/api/health` means a broken build never replaces the running one |
 | **Frontend** | Vercel | every push | static build from `frontend/`; `VITE_API_BASE_URL` points at the backend |
 

@@ -1,0 +1,16 @@
+{
+  "$comment": "Wire contract for POST /api/ask (Server-Sent Events). The backend test (backend/tests/test_contract.py) checks real events against it; the frontend test (frontend/src/contract.test.ts) checks the TypeScript mocks used by the browser tests against it. Change the API, change this file, and both sides fail until they agree.",
+  "events": {
+    "rewrite": { "required": ["type", "original", "question"], "optional": [] },
+    "analysis": { "required": ["type", "companies", "doc_type", "comparison", "best_similarity", "retrieval_ms"], "optional": [] },
+    "sources": { "required": ["type", "sources"], "optional": [] },
+    "token": { "required": ["type", "text"], "optional": [] },
+    "tool": { "required": ["type", "name", "expression"], "optional": ["result", "error"] },
+    "done": { "required": ["type", "answered", "cited", "gated", "total_ms"], "optional": [] },
+    "error": { "required": ["type", "message"], "optional": [] }
+  },
+  "source": {
+    "required": ["n", "doc_id", "title", "company", "period", "doc_type", "page", "section", "kind", "text", "scores"],
+    "scores": ["dense", "bm25", "fused", "rerank", "dense_rank", "bm25_rank"]
+  }
+}

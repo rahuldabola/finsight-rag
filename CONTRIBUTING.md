@@ -7,7 +7,7 @@ Everything below is what CI runs, so a green local run means a green PR.
 pip install -r requirements-dev.txt
 ruff check .                  # lint
 mypy app                      # types
-pytest                        # 54 tests, fails under 85% coverage; models and LLM are stubbed, no network
+pytest                        # 62 tests, fails under 85% coverage; models and LLM are stubbed, no network
 python -m eval.check_labels   # every expected figure in the eval set is printed on its gold page
 python -m eval.regression     # real embeddings on the seed index: Recall@8 must stay above the published floor
 
@@ -37,3 +37,9 @@ need numbers:
 - Python: `ruff` (config in `backend/pyproject.toml`), type hints on public functions, comments explain *why*.
 - TypeScript: `eslint` + strict `tsc`; pure logic lives in `src/lib` so it can be unit-tested without a DOM.
 - Tests never call the network or download models; use the fakes in `backend/tests/conftest.py`.
+
+## The API contract
+
+`contracts/ask-events.json` describes every Server-Sent Event of `POST /api/ask`. The backend tests check real events against it
+and the frontend tests check the mocks the browser tests use, so the two sides cannot drift apart silently. If you add or rename an
+event field, change that file first.

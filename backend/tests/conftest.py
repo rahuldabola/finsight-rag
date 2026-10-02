@@ -7,6 +7,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from app import embeddings as _embeddings  # noqa: E402
+
+# The real public functions, kept so test_embeddings.py can exercise them after the autouse stub below.
+REAL = {name: getattr(_embeddings, name) for name in ("embed_documents", "embed_query", "rerank")}
+
 
 def _fake_vec(text: str) -> np.ndarray:
     """Deterministic bag-of-words hash embedding: similar word sets -> similar vectors."""

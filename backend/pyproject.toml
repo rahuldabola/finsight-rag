@@ -13,7 +13,6 @@ filterwarnings = ["ignore::DeprecationWarning", "ignore:Using `httpx` with `star
 
 [tool.coverage.run]
 branch = false
-omit = ["app/embeddings.py"]  # thin wrapper over ONNX models; stubbed in tests, exercised by eval.regression in CI
 
 [tool.mypy]
 python_version = "3.11"

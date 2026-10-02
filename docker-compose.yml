@@ -1,0 +1,23 @@
+# One command for the API: `docker compose up --build`, then open http://localhost:8000/api/health.
+# The frontend runs with `cd frontend && npm install && npm run dev` (http://localhost:5173 talks to :8000).
+services:
+  api:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: "8000"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}              # free key: https://aistudio.google.com/apikey
+      FINSIGHT_ADMIN_PASSWORD: ${FINSIGHT_ADMIN_PASSWORD:-}   # set to enable PDF uploads
+      FINSIGHT_CORS_ORIGINS: http://localhost:5173
+    volumes:
+      - finsight-data:/tmp/finsight                    # uploaded PDFs and the live index survive restarts
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+volumes:
+  finsight-data:
