@@ -62,7 +62,7 @@ jobs:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: backend/requirements*.txt
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .fastembed
           key: fastembed-bge-small-en-v1.5
