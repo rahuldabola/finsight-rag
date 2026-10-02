@@ -1,5 +1,6 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { citationNumber, linkCitations } from '../lib/citations'
 
 interface Props {
   text: string
@@ -8,9 +9,6 @@ interface Props {
   onCite: (n: number) => void
 }
 
-// "[3]" -> a markdown link we can intercept; "[1][4]" becomes two links.
-const linkCitations = (text: string) => text.replace(/\[(\d{1,2})\](?!\()/g, '[$1](#cite-$1)')
-
 export function Answer({ text, streaming, activeSource, onCite }: Props) {
   return (
     <div className={`answer ${streaming ? 'caret' : ''}`}>
@@ -18,15 +16,14 @@ export function Answer({ text, streaming, activeSource, onCite }: Props) {
         remarkPlugins={[remarkGfm]}
         components={{
           a: ({ href, children }) => {
-            const m = href?.match(/^#cite-(\d+)$/)
-            if (!m) {
+            const n = citationNumber(href)
+            if (n === null) {
               return (
                 <a href={href} target="_blank" rel="noreferrer" className="text-mint-300 underline">
                   {children}
                 </a>
               )
             }
-            const n = Number(m[1])
             const active = activeSource === n
             return (
               <button

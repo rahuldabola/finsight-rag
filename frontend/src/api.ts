@@ -1,3 +1,5 @@
+import { parseSseFrames } from './lib/sse'
+
 export const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000').replace(/\/$/, '')
 
 export interface DocumentInfo {
@@ -108,14 +110,9 @@ export async function ask(
     const { done, value } = await reader.read()
     if (done) break
     buffer += decoder.decode(value, { stream: true })
-    let sep: number
-    while ((sep = buffer.indexOf('\n\n')) !== -1) {
-      const frame = buffer.slice(0, sep)
-      buffer = buffer.slice(sep + 2)
-      for (const line of frame.split('\n')) {
-        if (line.startsWith('data: ')) onEvent(JSON.parse(line.slice(6)) as AskEvent)
-      }
-    }
+    const { events, rest } = parseSseFrames<AskEvent>(buffer)
+    buffer = rest
+    events.forEach(onEvent)
   }
 }
 

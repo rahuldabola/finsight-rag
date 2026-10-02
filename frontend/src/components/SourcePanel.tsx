@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { pdfUrl, type Source } from '../api'
+import { companyClass } from '../lib/company'
 
 interface Props {
   sources: Source[]
@@ -13,15 +14,6 @@ interface Props {
   onOpenPdf: (docId: string, page: number) => void
   onCloseViewer: () => void
 }
-
-const COMPANY_COLORS: Record<string, string> = {
-  Infosys: 'bg-sky-400/15 text-sky-300',
-  Wipro: 'bg-violet-400/15 text-violet-300',
-  Cognizant: 'bg-amber-400/15 text-amber-300',
-  Accenture: 'bg-pink-400/15 text-pink-300',
-}
-
-export const companyClass = (c: string) => COMPANY_COLORS[c] ?? 'bg-ink-600/60 text-ink-100'
 
 function Score({ label, value }: { label: string; value: string }) {
   return (

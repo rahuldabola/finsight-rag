@@ -1,7 +1,7 @@
 import { CheckCircle2, ExternalLink, FileText, Loader2, Lock, Upload } from 'lucide-react'
 import { useState } from 'react'
 import { jobStatus, pdfUrl, uploadDocument, type DocumentInfo } from '../api'
-import { companyClass } from './SourcePanel'
+import { companyClass } from '../lib/company'
 
 interface Props {
   documents: DocumentInfo[]
