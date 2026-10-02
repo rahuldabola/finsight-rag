@@ -124,8 +124,9 @@ backend/
   data/seed/       manifest.json, 8 source PDFs, prebuilt index
   eval/            questions.py (labels + follow-ups) · check_labels.py · run_eval.py · results.json
   scripts/         build_corpus.py (EDGAR → PDF) · build_index.py
-  tests/           28 tests (models and LLM stubbed)
-frontend/          React 19 + Vite + Tailwind v4: chat, sources/PDF panel, library + upload, evaluation
+  eval/regression.py   CI gate: Recall@8 must not fall below the published baseline
+  tests/           54 tests, 94% coverage (models and LLM stubbed)
+frontend/          React 19 + Vite + Tailwind v4: chat, sources/PDF panel, library + upload, evaluation (17 Vitest tests)
 docs/              screenshots
 .github/workflows/ CI: lint, tests, eval-label check, frontend build
 ```
@@ -149,7 +150,9 @@ npm run dev                                     # http://localhost:5173 (talks t
 The prebuilt index ships in `backend/data/seed/index`, so nothing has to be embedded before the first question.
 
 ```bash
-pytest                                  # unit + API tests (no network, no model downloads)
+pytest                                  # 54 tests + 85% coverage floor (no network, no model downloads)
+mypy app                                # type check
+python -m eval.regression               # CI gate: real embeddings, Recall@8 above the published floor
 python -m eval.check_labels             # every expected figure really is on its gold page
 python -m eval.run_eval                 # retrieval ablation (offline)
 python -m eval.run_eval --answers       # + end-to-end answers via Gemini
@@ -195,7 +198,7 @@ Every push to `main` goes through three independent pipelines:
 
 | | Where | Trigger | Notes |
 |---|---|---|---|
-| **CI** | GitHub Actions | every push and PR | backend: `ruff`, `pytest`, `eval.check_labels`; frontend: `tsc` + `vite build` |
+| **CI** | GitHub Actions | every push and PR | backend: `ruff`, `mypy`, `pytest` (coverage floor 85%), `eval.check_labels`; retrieval regression: real embeddings on the seed index, Recall@8 must stay at or above 0.85 (hybrid) / 0.90 (+ filters); frontend: `eslint`, `vitest`, `tsc` + `vite build` |
 | **Backend** | Railway (1 GB RAM, 2 vCPU) | pushes that change `backend/**` | Docker build from `backend/`; health check on `/api/health` means a broken build never replaces the running one |
 | **Frontend** | Vercel | every push | static build from `frontend/`; `VITE_API_BASE_URL` points at the backend |
 
@@ -206,6 +209,19 @@ Every push to `main` goes through three independent pipelines:
 - **Uploads**: there is no volume, so uploaded PDFs last until the next deploy; the seed corpus is part of the image.
 - **Manual deploy** (from the repo root, since the service's root directory is `/backend`): `railway up --service finsight-api`.
 - **Alternative host**: `backend/scripts/deploy_space.py` deploys the same image to a Hugging Face Docker Space.
+
+## Design decisions and trade-offs
+
+| Decision | Alternative | Why this one |
+|---|---|---|
+| Page-bounded chunks | Fixed-size sliding windows across pages | A citation has to point at one page a reader can open. Cost: a passage that spans a page break is split. |
+| Tables as whole Markdown units | Flatten tables to text | Numbers lose meaning without their row and column headers. Cost: very wide tables are split by rows with the header repeated. |
+| Local ONNX embeddings and reranker | Hosted embedding API | No quota or per-call cost at ingest time, models baked into the image. Cost: ~1 s of CPU per rerank in production and a bigger image. |
+| NumPy matrix, no vector DB | Qdrant / pgvector | 3.2k chunks multiply in under a millisecond; one fewer service. The `Index` interface isolates the swap. |
+| Relevance gate before the LLM | Always call the LLM and let the prompt refuse | Saves a call and removes a hallucination path for off-topic questions. Cost: a fixed threshold (0.62) has to be re-calibrated if the corpus or embedding model changes (`results.json` stores the calibration). |
+| Rewrite follow-ups into a standalone question | Pass the chat history to the answering model | Company filters and the grounding prompt keep working unchanged and retrieval stays single-turn. Cost: one extra small LLM call, only when there is history, and the answer is not conditioned on earlier answers. |
+| Calculator tool for arithmetic | Trust the model | Growth rates are the most common derived figure and LLMs miss digits. The evaluator parses with `ast`, never `eval`. |
+| Labelled eval set with gold pages and a CI floor | Spot-check by hand | Retrieval changes are judged by numbers, and a regression fails the build rather than being noticed in a demo. |
 
 ## Production notes
 
