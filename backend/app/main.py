@@ -253,8 +253,10 @@ async def upload_document(
     doc = {"id": doc_id, "company": company, "period": period.strip(), "doc_type": doc_type,
            "title": title.strip() or f"{company} {period} ({file.filename})", "source": "upload"}
 
-    tmp = Path(tempfile.mkstemp(suffix=".pdf", dir=settings.data_dir)[1])
-    tmp.write_bytes(data)
+    fd, tmp_name = tempfile.mkstemp(suffix=".pdf", dir=settings.data_dir)
+    with os.fdopen(fd, "wb") as fh:  # mkstemp hands back an open descriptor; close it so the file can be moved
+        fh.write(data)
+    tmp = Path(tmp_name)
     job_id = uuid.uuid4().hex[:12]
     state.jobs[job_id] = {"id": job_id, "status": "queued", "doc_id": doc_id}
     threading.Thread(target=_run_ingest, args=(job_id, tmp, doc), daemon=True).start()

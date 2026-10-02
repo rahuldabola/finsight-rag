@@ -120,12 +120,15 @@ class Index:
     def companies(self) -> list[str]:
         return sorted({d["company"] for d in self.documents})
 
+    def company_rows(self, company: str) -> np.ndarray:
+        """Row ids of every chunk belonging to one company (empty if unknown)."""
+        return self._company_rows.get(company.lower(), np.zeros(0, dtype=np.int64))
+
     def rows_for(self, companies: list[str] | None) -> np.ndarray | None:
         """Row ids restricted to these companies (None = no restriction)."""
         if not companies:
             return None
-        parts = [self._company_rows.get(c.lower(), np.zeros(0, dtype=np.int64)) for c in companies]
-        return np.concatenate(parts) if parts else None
+        return np.concatenate([self.company_rows(c) for c in companies])
 
 
 def ensure_live_index(seed_dir: Path, data_dir: Path) -> Path:

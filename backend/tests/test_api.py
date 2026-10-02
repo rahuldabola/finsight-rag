@@ -1,4 +1,5 @@
 import json
+import time
 
 import pytest
 from fastapi.testclient import TestClient
@@ -165,3 +166,57 @@ def test_follow_up_rewrite_falls_back_to_raw_question(client, monkeypatch):
     history = [{"question": "Infosys Q1 revenue?", "answer": "$5,082 million [1]."}]
     events = _events(client.post("/api/ask", json={"question": "Infosys revenue growth?", "history": history}))
     assert all(e["type"] != "rewrite" for e in events) and events[-1]["type"] == "done"
+
+
+def test_upload_is_indexed_in_background_and_job_reports_done(client, monkeypatch):
+    import pymupdf
+
+    from app import main
+
+    doc = pymupdf.open()
+    doc.new_page().insert_text((72, 80), "TCS revenue for FY2026 was $30 billion.", fontsize=11)
+    data = doc.tobytes()
+
+    res = client.post(
+        "/api/documents",
+        files={"file": ("tcs.pdf", data, "application/pdf")},
+        data={"company": "TCS", "period": "FY2026", "doc_type": "annual"},
+        headers={"X-Admin-Password": "pw"},
+    )
+    assert res.status_code == 202
+    job = res.json()
+    for _ in range(100):
+        status = client.get(f"/api/jobs/{job['id']}").json()
+        if status["status"] in ("done", "failed"):
+            break
+        time.sleep(0.05)
+    assert status["status"] == "done", status
+    assert "TCS" in client.get("/api/documents").json()["companies"]
+    assert main.state.index.pdf_path(job["doc_id"]) is not None
+    assert client.get("/api/jobs/unknown").status_code == 404
+
+
+def test_upload_disabled_without_admin_password(client, monkeypatch):
+    monkeypatch.setenv("FINSIGHT_ADMIN_PASSWORD", "")
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+    files = {"file": ("x.pdf", b"%PDF-1.4", "application/pdf")}
+    res = client.post("/api/documents", files=files, data={"company": "TCS", "period": "FY2026"}, headers={"X-Admin-Password": "pw"})
+    assert res.status_code == 403
+
+
+def test_corrupt_pdf_upload_marks_job_failed(client):
+    res = client.post(
+        "/api/documents",
+        files={"file": ("bad.pdf", b"%PDF-1.4 not really a pdf", "application/pdf")},
+        data={"company": "Bad", "period": "FY2026"},
+        headers={"X-Admin-Password": "pw"},
+    )
+    job_id = res.json()["id"]
+    for _ in range(100):
+        status = client.get(f"/api/jobs/{job_id}").json()
+        if status["status"] in ("done", "failed"):
+            break
+        time.sleep(0.05)
+    assert status["status"] == "failed" and status["error"]

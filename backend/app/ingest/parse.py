@@ -80,7 +80,7 @@ def parse_pdf(path: str, detect_tables: bool = True) -> tuple[list[Block], int]:
     doc = pymupdf.open(path)
     body_size = _body_font_size(doc)
     blocks: list[Block] = []
-    for page in doc:
+    for page in doc.pages():
         pno = page.number + 1
         table_boxes: list[pymupdf.Rect] = []
         page_items: list[tuple[float, Block]] = []

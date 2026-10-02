@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import ast
 import operator
+from collections.abc import Callable
 
-_BINARY = {
+_BINARY: dict[type[ast.operator], Callable[[float, float], float]] = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
     ast.Mult: operator.mul,
@@ -18,7 +19,7 @@ _BINARY = {
     ast.Pow: operator.pow,
     ast.Mod: operator.mod,
 }
-_UNARY = {ast.UAdd: operator.pos, ast.USub: operator.neg}
+_UNARY: dict[type[ast.unaryop], Callable[[float], float]] = {ast.UAdd: operator.pos, ast.USub: operator.neg}
 
 
 class CalcError(ValueError):
@@ -34,7 +35,7 @@ def _eval(node: ast.AST) -> float:
         left, right = _eval(node.left), _eval(node.right)
         if isinstance(node.op, ast.Pow) and abs(right) > 10:
             raise CalcError("exponent too large")
-        return _BINARY[type(node.op)](left, right)
+        return float(_BINARY[type(node.op)](left, right))
     if isinstance(node, ast.UnaryOp) and type(node.op) in _UNARY:
         return _UNARY[type(node.op)](_eval(node.operand))
     raise CalcError(f"unsupported expression element: {type(node).__name__}")

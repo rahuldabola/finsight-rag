@@ -8,5 +8,15 @@ ignore = ["E501", "B008"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --cov=app --cov-report=term-missing:skip-covered --cov-fail-under=85"
 filterwarnings = ["ignore::DeprecationWarning", "ignore:Using `httpx` with `starlette.testclient`"]
+
+[tool.coverage.run]
+branch = false
+omit = ["app/embeddings.py"]  # thin wrapper over ONNX models; stubbed in tests, exercised by eval.regression in CI
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = true

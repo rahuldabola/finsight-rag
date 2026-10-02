@@ -107,7 +107,7 @@ def retrieve(
         dense = index.vectors @ qvec
         bm25 = index.bm25.scores(query)
         if use_filters and info.companies:
-            groups = [index.rows_for([c]) for c in info.companies]
+            groups = [index.company_rows(c) for c in info.companies]
         else:
             groups = [np.arange(len(index.chunks))]
         doc_type = info.doc_type if use_filters else None
@@ -126,7 +126,7 @@ def retrieve(
             pool = cands[:rerank_pool]
             for hit, score in zip(pool, embeddings.rerank(query, [h.chunk.search_text() for h in pool]), strict=False):
                 hit.rerank = score
-            cands = sorted(pool, key=lambda h: h.rerank, reverse=True)
+            cands = sorted(pool, key=lambda h: h.rerank or 0.0, reverse=True)
         selected.extend(cands[:per_group])
 
     best = max((h.dense for h in selected), default=0.0)
