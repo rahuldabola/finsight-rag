@@ -126,7 +126,7 @@ backend/
   scripts/         build_corpus.py (EDGAR → PDF) · build_index.py
   eval/regression.py   CI gate: Recall@8 must not fall below the published baseline
   tests/           54 tests, 94% coverage (models and LLM stubbed)
-frontend/          React 19 + Vite + Tailwind v4: chat, sources/PDF panel, library + upload, evaluation (17 Vitest tests)
+frontend/          React 19 + Vite + Tailwind v4: chat, sources/PDF panel, library + upload, evaluation (17 Vitest tests, 8 Playwright browser tests in `e2e/`)
 docs/              screenshots
 .github/workflows/ CI: lint, tests, eval-label check, frontend build
 ```
@@ -153,6 +153,7 @@ The prebuilt index ships in `backend/data/seed/index`, so nothing has to be embe
 pytest                                  # 54 tests + 85% coverage floor (no network, no model downloads)
 mypy app                                # type check
 python -m eval.regression               # CI gate: real embeddings, Recall@8 above the published floor
+(cd ../frontend && npm test && npm run test:e2e)   # unit tests + browser tests (first time: npx playwright install chromium)
 python -m eval.check_labels             # every expected figure really is on its gold page
 python -m eval.run_eval                 # retrieval ablation (offline)
 python -m eval.run_eval --answers       # + end-to-end answers via Gemini
@@ -198,7 +199,7 @@ Every push to `main` goes through three independent pipelines:
 
 | | Where | Trigger | Notes |
 |---|---|---|---|
-| **CI** | GitHub Actions | every push and PR | backend: `ruff`, `mypy`, `pytest` (coverage floor 85%), `eval.check_labels`; retrieval regression: real embeddings on the seed index, Recall@8 must stay at or above 0.85 (hybrid) / 0.90 (+ filters); frontend: `eslint`, `vitest`, `tsc` + `vite build` |
+| **CI** | GitHub Actions | every push and PR | backend: `ruff`, `mypy`, `pytest` (coverage floor 85%), `eval.check_labels`; retrieval regression: real embeddings on the seed index, Recall@8 must stay at or above 0.85 (hybrid) / 0.90 (+ filters); frontend: `eslint`, `vitest`, `tsc` + `vite build`; e2e: Playwright (Chromium) against the production build with the API mocked |
 | **Backend** | Railway (1 GB RAM, 2 vCPU) | pushes that change `backend/**` | Docker build from `backend/`; health check on `/api/health` means a broken build never replaces the running one |
 | **Frontend** | Vercel | every push | static build from `frontend/`; `VITE_API_BASE_URL` points at the backend |
 

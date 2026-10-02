@@ -2,3 +2,5 @@ node_modules
 dist
 .vercel
 *.local
+playwright-report
+test-results

@@ -14,7 +14,9 @@ python -m eval.regression     # real embeddings on the seed index: Recall@8 must
 # frontend (from frontend/)
 npm ci
 npm run lint
-npm test
+npm test                      # Vitest unit tests
+npx playwright install chromium   # once
+npm run test:e2e              # 8 browser tests; builds and serves the app, mocks /api (see e2e/mock-api.ts)
 npm run build                 # tsc -b + vite build
 ```
 
