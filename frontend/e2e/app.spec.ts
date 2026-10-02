@@ -136,3 +136,31 @@ test('tells the user when the API is unreachable', async ({ page }) => {
   await expect(page.getByText(/Can't reach the API/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
 })
+
+test.describe('mobile layout', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('sources open in a full-screen panel and close again', async ({ page }) => {
+    await mockApi(page)
+    await page.goto('/')
+    await page.getByRole('button', { name: EXAMPLE }).click()
+    await expect(page.getByText('up 2.85% year over year')).toBeVisible()
+
+    // The side panel is hidden on small screens until asked for.
+    await expect(page.getByText('2 passages retrieved')).toBeHidden()
+    await page.getByRole('button', { name: 'View 2 sources →' }).click()
+    await expect(page.getByText('2 passages retrieved · 2 cited')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Close' }).click()
+    await expect(page.getByText('2 passages retrieved')).toBeHidden()
+  })
+
+  test('has no horizontal scroll', async ({ page }) => {
+    await mockApi(page)
+    await page.goto('/')
+    await page.getByRole('button', { name: EXAMPLE }).click()
+    await expect(page.getByText('up 2.85% year over year')).toBeVisible()
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(0)
+  })
+})

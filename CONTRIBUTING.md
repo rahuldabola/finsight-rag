@@ -16,7 +16,7 @@ npm ci
 npm run lint
 npm test                      # Vitest unit tests
 npx playwright install chromium   # once
-npm run test:e2e              # 8 browser tests; builds and serves the app, mocks /api (see e2e/mock-api.ts)
+npm run test:e2e              # 10 browser tests (desktop + mobile); builds and serves the app, mocks /api (see e2e/mock-api.ts)
 npm run build                 # tsc -b + vite build
 ```
 

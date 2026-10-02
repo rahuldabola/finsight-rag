@@ -4,6 +4,7 @@
 [![Live demo](https://img.shields.io/badge/demo-live-1fb888)](https://finsight-ai-rag.vercel.app)
 ![Python](https://img.shields.io/badge/python-3.11-3776ab)
 ![React](https://img.shields.io/badge/react-19-61dafb)
+[![Live smoke](https://github.com/rahuldabola/finsight-rag/actions/workflows/live-smoke.yml/badge.svg)](https://github.com/rahuldabola/finsight-rag/actions/workflows/live-smoke.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 Ask questions across the latest SEC filings of **Infosys, Wipro, Cognizant and Accenture** (Form 20-F / 10-K annual
@@ -126,7 +127,7 @@ backend/
   scripts/         build_corpus.py (EDGAR → PDF) · build_index.py
   eval/regression.py   CI gate: Recall@8 must not fall below the published baseline
   tests/           54 tests, 94% coverage (models and LLM stubbed)
-frontend/          React 19 + Vite + Tailwind v4: chat, sources/PDF panel, library + upload, evaluation (17 Vitest tests, 8 Playwright browser tests in `e2e/`)
+frontend/          React 19 + Vite + Tailwind v4: chat, sources/PDF panel, library + upload, evaluation (17 Vitest tests, 10 Playwright browser tests in `e2e/`, desktop and mobile)
 docs/              screenshots
 .github/workflows/ CI: lint, tests, eval-label check, frontend build
 ```
@@ -199,10 +200,13 @@ Every push to `main` goes through three independent pipelines:
 
 | | Where | Trigger | Notes |
 |---|---|---|---|
-| **CI** | GitHub Actions | every push and PR | backend: `ruff`, `mypy`, `pytest` (coverage floor 85%), `eval.check_labels`; retrieval regression: real embeddings on the seed index, Recall@8 must stay at or above 0.85 (hybrid) / 0.90 (+ filters); frontend: `eslint`, `vitest`, `tsc` + `vite build`; e2e: Playwright (Chromium) against the production build with the API mocked |
+| **CI** | GitHub Actions | every push and PR | backend: `ruff`, `mypy`, `pytest` (coverage floor 85%), `eval.check_labels`; retrieval regression: real embeddings on the seed index, Recall@8 must stay at or above 0.85 (hybrid) / 0.90 (+ filters); frontend: `eslint`, `vitest`, `tsc` + `vite build`; e2e: Playwright (Chromium, desktop + mobile viewport) against the production build with the API mocked |
 | **Backend** | Railway (1 GB RAM, 2 vCPU) | pushes that change `backend/**` | Docker build from `backend/`; health check on `/api/health` means a broken build never replaces the running one |
 | **Frontend** | Vercel | every push | static build from `frontend/`; `VITE_API_BASE_URL` points at the backend |
 
+- **Is the live demo healthy?** `live-smoke.yml` runs daily (and on demand): frontend reachable, `/api/health` reports the full
+  corpus, real retrieval returns the Infosys Q1 revenue table. It makes no LLM call, so it uses no Gemini quota. Dependabot
+  keeps Python, npm, Actions and Docker dependencies current.
 - **Which version is live?** `GET /api/health` returns `"commit"`: the short git SHA for git-triggered deploys
   (`local` for a manual `railway up`).
 - **Secrets** (`GEMINI_API_KEY`, `FINSIGHT_ADMIN_PASSWORD`, `FINSIGHT_CORS_ORIGINS`) live in Railway variables, never in the repo.
