@@ -7,6 +7,10 @@ updates:
     groups:
       python-minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # numpy 2.5 requires Python >= 3.12; the image and CI run 3.11.
+      - dependency-name: numpy
+        update-types: [version-update:semver-major, version-update:semver-minor]
   - package-ecosystem: npm
     directory: /frontend
     schedule:
