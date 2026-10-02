@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-26",
+  "generated_at": "2026-10-03",
   "corpus": {
     "documents": 8,
     "chunks": 3168,
@@ -16,7 +16,7 @@
       "recall_at_5": 0.598,
       "recall_at_8": 0.7255,
       "mrr": 0.5318,
-      "latency_ms": 32
+      "latency_ms": 35
     },
     {
       "config": "Dense only",
@@ -32,7 +32,7 @@
       "recall_at_5": 0.8333,
       "recall_at_8": 0.8725,
       "mrr": 0.6498,
-      "latency_ms": 33
+      "latency_ms": 34
     },
     {
       "config": "Hybrid + query filters",
@@ -40,7 +40,7 @@
       "recall_at_5": 0.8333,
       "recall_at_8": 0.9216,
       "mrr": 0.6319,
-      "latency_ms": 33
+      "latency_ms": 34
     },
     {
       "config": "Hybrid + filters + rerank",
@@ -48,7 +48,7 @@
       "recall_at_5": 0.8529,
       "recall_at_8": 0.9608,
       "mrr": 0.6826,
-      "latency_ms": 3879
+      "latency_ms": 4008
     }
   ],
   "gate": {
@@ -76,12 +76,12 @@
     "evaluated": 63,
     "errors": 0,
     "exact_figure_accuracy": 0.9608,
-    "citation_page_accuracy": 0.902,
-    "citation_support_rate": 0.9412,
+    "citation_page_accuracy": 0.9216,
+    "citation_support_rate": 0.9608,
     "refusal_rate_unanswerable": 1.0,
     "false_refusal_rate": 0.0196,
-    "calculator_used": 4,
-    "avg_latency_ms": 4690,
+    "calculator_used": 7,
+    "avg_latency_ms": 5230,
     "model": "gemini-flash-lite-latest"
   },
   "followups": {

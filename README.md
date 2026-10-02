@@ -49,11 +49,11 @@ End-to-end with `gemini-flash-lite-latest` (63 questions, including 12 unanswera
 | Metric | Result |
 |---|---|
 | Answer contains the exact expected figure | **96.1%** |
-| A cited page prints the expected figure | **94.1%** |
-| Cited one of the hand-labelled gold pages | 90.2% |
+| A cited page prints the expected figure | **96.1%** |
+| Cited one of the hand-labelled gold pages | 92.2% |
 | Refuses unanswerable questions | **100%** |
 | False refusals on answerable questions | 2.0% |
-| Average end-to-end latency | 4.7 s |
+| Average end-to-end latency | 5.2 s |
 
 Follow-up questions (12 ambiguous follow-ups, each after an earlier turn, e.g. "And Cognizant at the end of 2025?",
 "What was diluted EPS in that quarter?", "Same question for Cognizant."):
@@ -77,7 +77,7 @@ Findings:
 - Follow-ups are rewritten into standalone questions (one extra `gemini-flash-lite` call, only when there is history), so
   company filters and the grounding prompt work unchanged. The one remaining miss asked for Wipro's headcount "for the
   same period" (June 2026) while the label is the annual figure.
-- Filings repeat key numbers on several pages, so 'cited a labelled gold page' (90%) understates citation quality; 94% of answers cite a page that prints the expected figure.
+- Filings repeat key numbers on several pages, so 'cited a labelled gold page' (92%) understates citation quality; 96% of answers cite a page that prints the expected figure. In the two answers that do not, the figure is right but the cited page does not print it (a model citation slip, not a retrieval miss).
 
 ## Architecture
 
