@@ -1,9 +1,9 @@
-fastapi==0.142.1
+fastapi==0.143.0
 uvicorn[standard]==0.54.0
-google-genai==2.25.0
+google-genai==2.30.0
 pymupdf==1.28.2
-fastembed==0.8.1
+fastembed==0.9.0
 numpy==2.4.6
-pydantic==2.13.5
-python-dotenv==1.2.3
+pydantic==2.14.1
+python-dotenv==1.2.4
 python-multipart==0.0.32
