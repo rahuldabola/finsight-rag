@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  API: https://finsight-api-production-1220.up.railway.app
+  API: ${{ vars.SERVICE_URL }}
   WEB: https://finsight-ai-rag.vercel.app
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
 
       - name: API is healthy and serves the full corpus
         run: |
-          # --retry-all-errors: an idle Railway container can take a while to wake.
+          # --retry-all-errors: an idle Render instance can take a while to wake.
           curl --fail --silent --show-error --retry 5 --retry-delay 10 --retry-all-errors "$API/api/health" | tee health.json
           jq -e '.status == "ok" and .documents == 8 and .chunks > 3000' health.json
 

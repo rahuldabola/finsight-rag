@@ -45,6 +45,15 @@ class State:
 state = State()
 
 
+def _commit() -> str:
+    """The deployed git SHA, so you can confirm which commit is live.
+
+    FINSIGHT_COMMIT is set by scripts/deploy_space.py (Hugging Face); Railway and Render set their own for git deploys.
+    """
+    sha = os.environ.get("FINSIGHT_COMMIT") or os.environ.get("RAILWAY_GIT_COMMIT_SHA") or os.environ.get("RENDER_GIT_COMMIT") or "local"
+    return sha[:7]
+
+
 def _warm_models() -> None:
     try:
         embeddings.embed_query("warm up")
@@ -64,7 +73,7 @@ async def lifespan(_: FastAPI):
         "index loaded: %d documents, %d chunks (commit %s)",
         len(state.index.documents),
         len(state.index.chunks),
-        os.environ.get("RAILWAY_GIT_COMMIT_SHA", "local")[:7],
+        _commit(),
     )
     threading.Thread(target=_warm_models, daemon=True).start()
     yield
@@ -141,8 +150,7 @@ def health() -> dict:
         "documents": len(idx.documents),
         "chunks": len(idx.chunks),
         "model": get_settings().chat_model,
-        # Railway sets this for git deploys; lets you confirm which commit is live.
-        "commit": os.environ.get("RAILWAY_GIT_COMMIT_SHA", "local")[:7],
+        "commit": _commit(),
     }
 
 

@@ -7,3 +7,4 @@ scripts
 data/live
 eval/answers.jsonl
 .env
+.mypy_cache

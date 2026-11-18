@@ -1,0 +1,26 @@
+# Render Blueprint for the FinSight API (the UI is on Vercel).
+# One-click deploy: https://render.com/deploy?repo=https://github.com/rahuldabola/finsight-rag
+services:
+  - type: web
+    name: finsight-api
+    runtime: docker
+    plan: free
+    region: singapore
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # Secrets: prompted for in the Render dashboard, never committed.
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FINSIGHT_ADMIN_PASSWORD # upload password; empty disables uploads
+        sync: false
+      - key: FINSIGHT_CORS_ORIGINS
+        value: https://finsight-ai-rag.vercel.app
+      # Free instances get a fractional CPU; more ONNX threads than cores only adds contention.
+      - key: FINSIGHT_ONNX_THREADS
+        value: "1"
+      # Free instances have an ephemeral disk: uploaded PDFs reset on each deploy or
+      # restart, and the seed corpus baked into the image is restored on boot.
