@@ -12,7 +12,12 @@ then builds the image; progress is visible on the Space page.
 from __future__ import annotations
 
 import argparse
+import os
 import secrets
+import shutil
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 
 from dotenv import dotenv_values
@@ -47,7 +52,10 @@ def main() -> None:
     args = parser.parse_args()
 
     env = dotenv_values(ENV_FILE)
-    api = HfApi(token=env["HF_TOKEN"])
+    token = env.get("HF_TOKEN") or os.environ.get("HF_TOKEN")
+    if not token:
+        sys.exit("HF_TOKEN not found: add HF_TOKEN=hf_... to the repo-root .env (write-access token).")
+    api = HfApi(token=token)
     api.create_repo(args.space, repo_type="space", space_sdk="docker", exist_ok=True)
 
     password = args.admin_password or env.get("FINSIGHT_ADMIN_PASSWORD") or secrets.token_urlsafe(12)
@@ -61,20 +69,26 @@ def main() -> None:
     }.items():
         api.add_space_secret(args.space, key, value)
 
-    api.upload_folder(
-        repo_id=args.space,
-        repo_type="space",
-        folder_path=str(BACKEND),
-        ignore_patterns=[
-            "**/__pycache__/**", "*.pyc", ".pytest_cache/**", ".ruff_cache/**",
-            "data/live/**", "eval/answers.jsonl", ".env", "tests/**",
-        ],
-        commit_message="Deploy FinSight backend",
-    )
-    api.upload_file(
-        repo_id=args.space, repo_type="space", path_in_repo="README.md",
-        path_or_fileobj=SPACE_README.encode("utf-8"), commit_message="Space metadata",
-    )
+    sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=BACKEND, capture_output=True, text=True, check=False
+    ).stdout.strip() or "local"
+    api.add_space_variable(args.space, "FINSIGHT_COMMIT", sha)
+
+    # Code and Space metadata go up in a single commit, so Hugging Face builds the image once.
+    # The upload goes through the Hub API, which handles the >10 MB filing PDFs (plain git push would reject them).
+    with tempfile.TemporaryDirectory() as tmp:
+        stage = Path(tmp) / "space"
+        shutil.copytree(BACKEND, stage, ignore=shutil.ignore_patterns(
+            "__pycache__", "*.pyc", ".pytest_cache", ".ruff_cache", ".mypy_cache", ".coverage", ".env", "tests", "live",
+        ))
+        (stage / "eval" / "answers.jsonl").unlink(missing_ok=True)
+        (stage / "README.md").write_text(SPACE_README, encoding="utf-8")
+        api.upload_folder(
+            repo_id=args.space,
+            repo_type="space",
+            folder_path=str(stage),
+            commit_message=f"Deploy FinSight backend ({sha[:7]})",
+        )
     user, name = args.space.split("/")
     print(f"https://huggingface.co/spaces/{args.space}")
     print(f"https://{user}-{name}.hf.space/api/health")
