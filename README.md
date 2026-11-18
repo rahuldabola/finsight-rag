@@ -216,6 +216,9 @@ Every push to `main` goes through three independent pipelines:
 - **Fitting in 512 MB**: `render.yaml` sets `FINSIGHT_ONNX_ARENA=0` and `FINSIGHT_RERANK_BATCH=1`. With ONNX Runtime's memory
   arena and 4-passage batches a reranked search peaked at ~565 MB and Render killed the instance; with both it peaks at ~420 MB,
   with identical rerank scores.
+- **No reranker in production**: on the free instance's fractional CPU the cross-encoder took ~9 s per question, so
+  `render.yaml` sets `FINSIGHT_RERANK=0`. Retrieval drops to ~0.1 s; on the eval set Recall@8 goes 0.961 -> 0.922
+  (the "Hybrid + query filters" row above). Set it back to `1` on a host with real CPU.
 - **Sleep**: free instances sleep after 15 idle minutes. `keep-warm.yml` pings `/api/health` every 10 minutes from 8 PM to 8 AM IST,
   which keeps two free services on one account inside Render's 750 free hours a month; outside that window the first request
   after a quiet spell waits about a minute while it wakes.
