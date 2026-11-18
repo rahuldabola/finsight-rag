@@ -21,6 +21,15 @@ _lock = threading.Lock()
 # CPUs, each with its own scratch buffers. Pin it to what the container really has.
 THREADS = int(os.environ.get("FINSIGHT_ONNX_THREADS", "2"))
 
+# ONNX Runtime's CPU memory arena keeps the peak allocation of every batch reserved for
+# reuse. That is fast, but on a 512 MB instance the reranker's arena alone pushes the
+# process over the limit. FINSIGHT_ONNX_ARENA=0 frees buffers after each call instead.
+ONNX_OPTS = {"enable_cpu_mem_arena": os.environ.get("FINSIGHT_ONNX_ARENA", "1") != "0"}
+
+# Passages scored per ONNX call. Activation memory grows with the batch, so a
+# 512 MB instance runs with FINSIGHT_RERANK_BATCH=1; the scores do not depend on it.
+RERANK_BATCH = int(os.environ.get("FINSIGHT_RERANK_BATCH", "4"))
+
 # bge models expect this instruction on the query side only.
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 
@@ -29,14 +38,18 @@ QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 def _embedder():
     from fastembed import TextEmbedding
 
-    return TextEmbedding(get_settings().embed_model, cache_dir=os.environ.get("FASTEMBED_CACHE_PATH"), threads=THREADS)
+    return TextEmbedding(
+        get_settings().embed_model, cache_dir=os.environ.get("FASTEMBED_CACHE_PATH"), threads=THREADS, **ONNX_OPTS
+    )
 
 
 @lru_cache(maxsize=1)
 def _reranker():
     from fastembed.rerank.cross_encoder import TextCrossEncoder
 
-    return TextCrossEncoder(get_settings().rerank_model, cache_dir=os.environ.get("FASTEMBED_CACHE_PATH"), threads=THREADS)
+    return TextCrossEncoder(
+        get_settings().rerank_model, cache_dir=os.environ.get("FASTEMBED_CACHE_PATH"), threads=THREADS, **ONNX_OPTS
+    )
 
 
 def _normalize(m: np.ndarray) -> np.ndarray:
@@ -63,4 +76,4 @@ def rerank(query: str, passages: list[str]) -> list[float]:
     if not passages:
         return []
     with _lock:
-        return [float(s) for s in _reranker().rerank(query, passages, batch_size=4)]
+        return [float(s) for s in _reranker().rerank(query, passages, batch_size=RERANK_BATCH)]
