@@ -22,5 +22,12 @@ services:
       # Free instances get a fractional CPU; more ONNX threads than cores only adds contention.
       - key: FINSIGHT_ONNX_THREADS
         value: "1"
+      # Free instances have 512 MB. With ONNX's memory arena and 4-passage rerank batches,
+      # a reranked search peaked at ~565 MB and the instance was killed; with these two
+      # it peaks at ~420 MB (measured locally), and reranking got faster on one thread.
+      - key: FINSIGHT_ONNX_ARENA
+        value: "0"
+      - key: FINSIGHT_RERANK_BATCH
+        value: "1"
       # Free instances have an ephemeral disk: uploaded PDFs reset on each deploy or
       # restart, and the seed corpus baked into the image is restored on boot.
