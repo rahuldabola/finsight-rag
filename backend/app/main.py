@@ -57,7 +57,8 @@ def _commit() -> str:
 def _warm_models() -> None:
     try:
         embeddings.embed_query("warm up")
-        embeddings.rerank("warm up", ["warm up"])
+        if get_settings().rerank:  # otherwise the cross-encoder is never loaded, saving ~90 MB
+            embeddings.rerank("warm up", ["warm up"])
         log.info("models warm")
     except Exception:  # noqa: BLE001
         log.exception("model warm-up failed")
