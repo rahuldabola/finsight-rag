@@ -12,7 +12,7 @@ reports plus the most recent quarterly earnings releases, 937 pages in total). F
 documents, cites every figure down to the page, does arithmetic with a calculator tool instead of guessing, and says
 *"I couldn't find this"* when the filings don't contain the answer.
 
-**Live demo:** https://finsight-ai-rag.vercel.app · **API:** https://finsight-api-production-1220.up.railway.app/api/health
+**Live demo:** https://finsight-ai-rag.vercel.app · **API:** https://finsight-api-g60e.onrender.com/api/health
 
 ![A calculated answer with a page citation, then a follow-up that is rewritten into a standalone question](docs/followup.png)
 
@@ -192,7 +192,7 @@ python -m scripts.build_corpus --chrome <path-to-chrome>   # re-download filings
 | `GET /api/health` | Index size, model, and the deployed git commit |
 
 ```bash
-curl -N https://finsight-api-production-1220.up.railway.app/api/ask -H 'Content-Type: application/json' \
+curl -N https://finsight-api-g60e.onrender.com/api/ask -H 'Content-Type: application/json' \
   -d '{"question": "and Wipro?", "history": [{"question": "What was Infosys revenue in Q1 FY27?", "answer": "$5,082 million."}]}'
 ```
 
@@ -203,19 +203,23 @@ Every push to `main` goes through three independent pipelines:
 | | Where | Trigger | Notes |
 |---|---|---|---|
 | **CI** | GitHub Actions | every push and PR | backend: `ruff`, `mypy`, `pytest` (coverage floor 85%), `eval.check_labels`; retrieval regression: real embeddings on the seed index, Recall@8 must stay at or above 0.85 (hybrid) / 0.90 (+ filters); frontend: `eslint`, `vitest`, `tsc` + `vite build`; e2e: Playwright (Chromium, desktop + mobile viewport) against the production build with the API mocked; docker: builds the production image with `docker compose`, waits for its healthcheck and queries it; API contract: backend and frontend tests share `contracts/ask-events.json` |
-| **Backend** | Railway (1 GB RAM, 2 vCPU) | pushes that change `backend/**` | Docker build from `backend/`; health check on `/api/health` means a broken build never replaces the running one |
+| **Backend** | Render free web service (512 MB RAM), defined in `render.yaml` | every push to `main` | Docker build from `backend/`; health check on `/api/health` means a broken build never replaces the running one |
 | **Frontend** | Vercel | every push | static build from `frontend/`; `VITE_API_BASE_URL` points at the backend |
 
 - **Is the live demo healthy?** `live-smoke.yml` runs daily (and on demand): frontend reachable, `/api/health` reports the full
   corpus, real retrieval returns the Infosys Q1 revenue table. It makes no LLM call, so it uses no Gemini quota. Dependabot
   keeps Python, npm, Actions and Docker dependencies current.
-- **Which version is live?** `GET /api/health` returns `"commit"`: the short git SHA for git-triggered deploys
-  (`local` for a manual `railway up`).
-- **Secrets** (`GEMINI_API_KEY`, `FINSIGHT_ADMIN_PASSWORD`, `FINSIGHT_CORS_ORIGINS`) live in Railway variables, never in the repo.
+- **Which version is live?** `GET /api/health` returns `"commit"`: the short git SHA of the deployed build.
+- **Secrets** (`GEMINI_API_KEY`, `FINSIGHT_ADMIN_PASSWORD`, `FINSIGHT_CORS_ORIGINS`) are set in the Render dashboard (or as Space secrets), never in the repo.
 - **Models** (ONNX) are baked into the image, so cold starts don't download anything.
 - **Uploads**: there is no volume, so uploaded PDFs last until the next deploy; the seed corpus is part of the image.
-- **Manual deploy** (from the repo root, since the service's root directory is `/backend`): `railway up --service finsight-api`.
-- **Alternative host**: `backend/scripts/deploy_space.py` deploys the same image to a Hugging Face Docker Space.
+- **Fitting in 512 MB**: `render.yaml` sets `FINSIGHT_ONNX_ARENA=0` and `FINSIGHT_RERANK_BATCH=1`. With ONNX Runtime's memory
+  arena and 4-passage batches a reranked search peaked at ~565 MB and Render killed the instance; with both it peaks at ~420 MB,
+  with identical rerank scores.
+- **Sleep**: free instances sleep after 15 idle minutes. `keep-warm.yml` pings `/api/health` every 10 minutes from 8 PM to 8 AM IST,
+  which keeps two free services on one account inside Render's 750 free hours a month; outside that window the first request
+  after a quiet spell waits about a minute while it wakes.
+- **Alternative host**: `backend/scripts/deploy_space.py` deploys the same image to a Hugging Face Docker Space (Docker Spaces need HF PRO).
 
 ## Design decisions and trade-offs
 
